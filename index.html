@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cloverleaf Underwriting</title>
+<style>
+body { font-family: Arial; background:#0b1220; color:white; padding:20px;}
+.card { background:#142033; padding:15px; border-radius:10px; margin-bottom:15px;}
+input { width:100%; padding:5px; margin-top:5px;}
+button { padding:8px; margin-top:10px;}
+.hidden { display:none;}
+</style>
+</head>
+
+<body>
+
+<h1>Cloverleaf RV Model</h1>
+
+<div class="card">
+<h3>Inputs</h3>
+<label>STR Occupancy</label>
+<input id="occ" value="0.6">
+<label>ADR</label>
+<input id="adr" value="65">
+<label>Expense Mult</label>
+<input id="exp" value="1">
+<button onclick="run()">Run</button>
+</div>
+
+<div class="card">
+<h3>Results</h3>
+<div id="out"></div>
+</div>
+
+<script>
+function run(){
+  let occ = parseFloat(document.getElementById("occ").value);
+  let adr = parseFloat(document.getElementById("adr").value);
+  let exp = parseFloat(document.getElementById("exp").value);
+
+  let revenue = 22 * adr * 365 * occ;
+  let expenses = 200000 * exp;
+  let noi = revenue - expenses;
+  let debt = 140000;
+  let dscr = noi / debt;
+  let value = noi / 0.09;
+
+  document.getElementById("out").innerHTML =
+    "NOI: $" + Math.round(noi) +
+    "<br>DSCR: " + dscr.toFixed(2) +
+    "<br>Value: $" + Math.round(value);
+}
+run();
+</script>
+
+</body>
+</html>
