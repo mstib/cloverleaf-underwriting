@@ -1,0 +1,1370 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cloverleaf RV Village Underwriting Model</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#142033; --panel2:#1a2a42; --text:#e7eef8; --muted:#9fb0c8;
+    --line:#2a3a54; --accent:#3ddc84; --accent2:#60a5fa; --warn:#f59e0b;
+    --good:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#08101c,#0b1220 25%,#0b1220);color:var(--text)}
+  .wrap{max-width:1600px;margin:0 auto;padding:20px 18px 40px}
+  h1{margin:0 0 6px;font-size:34px;font-weight:800}
+  .sub{color:var(--muted);margin-bottom:18px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700}
+  .tab.active{background:var(--panel2);border-color:#4b6b9a}
+  .layout{display:grid;grid-template-columns:600px 1fr;gap:16px}
+  .card{background:rgba(20,32,51,.94);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 10px 24px rgba(0,0,0,.16)}
+  .card h2,.card h3{margin:0 0 12px}
+  .section-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;font-weight:800}
+  .grid2,.grid3{display:grid;gap:10px}
+  .grid2{grid-template-columns:1fr 1fr}
+  .grid3{grid-template-columns:1fr 1fr 1fr}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700}
+  input,select{
+    width:100%;padding:10px 11px;border-radius:10px;border:1px solid #31435f;background:#0c1628;color:var(--text);font-size:14px
+  }
+  input[type=checkbox]{width:auto;transform:scale(1.15);margin-right:8px}
+  .check{display:flex;align-items:center;background:#0f1a2d;border:1px solid #2b3a53;border-radius:12px;padding:10px 12px;min-height:46px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  button{background:var(--accent);color:#062312;border:none;border-radius:12px;padding:11px 15px;font-weight:800;cursor:pointer}
+  button.secondary{background:#223553;color:var(--text)}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+  .metric{background:#0f1a2d;border:1px solid var(--line);border-radius:16px;padding:14px}
+  .metric .label{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .metric .value{font-size:28px;font-weight:800;margin-top:6px}
+  .metric .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .panel-hidden{display:none}
+  .note{color:var(--muted);font-size:14px;line-height:1.55}
+  .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px 8px;border-bottom:1px solid #243349;text-align:right;vertical-align:middle}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  .footer-note{font-size:12px;color:var(--muted);margin-top:8px}
+  .status-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:800;background:#0f1a2d;border:1px solid var(--line);margin-left:8px}
+  .matrix th{position:sticky;top:0;background:#142033;z-index:1}
+  .matrix td:first-child,.matrix th:first-child{position:sticky;left:0;background:#142033;z-index:2}
+  .matrix-wrap{overflow:auto;border:1px solid #243349;border-radius:14px}
+  .matrix input{min-width:74px}
+  .matrix .labelcell{min-width:170px;font-weight:700}
+  .tiny{font-size:11px;color:var(--muted)}
+  .inline-help{background:#0f1a2d;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
+
+  .help-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  @media (max-width:1280px){ .layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:760px){ .grid3,.grid2,.metrics{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cloverleaf RV Village Underwriting Model</h1>
+  <div class="sub">Clean underwriting version with centralized operating expenses, simplified NOI logic, and an in-app margin explainer.</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="annual">Annual</button>
+    <button class="tab" data-tab="monthly">Monthly</button>
+    <button class="tab" data-tab="lender">Lender</button>
+    <button class="tab" data-tab="lender-summary">Lender Summary</button>
+    <button class="tab" data-tab="investor">Investor</button>
+    <button class="tab" data-tab="scenarios">Scenarios</button>
+    <button class="tab" data-tab="summary">Summary</button>
+  </div>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <h2>Inputs</h2>
+
+        <div class="section-title">Purchase & Debt</div>
+        <div class="grid2">
+          <div><label>Purchase Price</label><input id="purchasePrice" type="number" value="2000000"></div>
+          <div><label>Exit Cap Rate</label><input id="exitCap" type="number" step="0.001" value="0.09"></div>
+          <div><label>Senior Loan %</label><input id="seniorPct" type="number" step="0.01" value="0.80"></div>
+          <div><label>Senior Rate</label><input id="seniorRate" type="number" step="0.001" value="0.07"></div>
+          <div>
+            <label>Senior Loan Type</label>
+            <select id="seniorType">
+              <option value="io_then_amort" selected>IO then amortizing</option>
+              <option value="io">Interest-only</option>
+              <option value="amort">25-year amortizing</option>
+            </select>
+          </div>
+          <div><label>IO Months</label><input id="ioMonths" type="number" value="12"></div>
+          <div><label>Amortization Years</label><input id="amortYears" type="number" value="25"></div>
+          <div><label>Balloon Year</label><input id="balloonYear" type="number" value="5"></div>
+          <div><label>Seller Note %</label><input id="sellerNotePct" type="number" step="0.01" value="0.10"></div>
+          <div><label>Seller Note Rate</label><input id="sellerNoteRate" type="number" step="0.001" value="0.045"></div>
+          <div><label>Seller Defer Months</label><input id="sellerDeferMonths" type="number" value="12"></div>
+          <div><label>Closing Costs %</label><input id="closingCostPct" type="number" step="0.001" value="0.015"></div>
+          <div><label>Lender DSCR Target</label><input id="dscrTarget" type="number" step="0.01" value="1.25"></div>
+        </div>
+
+        <div class="section-title">Feature Toggles</div>
+        <div class="grid2">
+          <label class="check"><input id="useHouse" type="checkbox" checked>Use Main House STR</label>
+          <label class="check"><input id="useParkModels" type="checkbox" checked>Use Park Models</label>
+          <label class="check"><input id="useGlamping" type="checkbox" checked>Use Glamping</label>
+          <label class="check"><input id="useAgri" type="checkbox" checked>Use Agri Events</label>
+          <label class="check"><input id="useFarm" type="checkbox" checked>Use Farmer Rev Share</label>
+          <label class="check"><input id="useKayak" type="checkbox" checked>Use Kayak / Tubing</label>
+        </div>
+
+        <div class="section-title">RV Matrix</div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>RV Item</th>
+                <th>Static</th>
+                <th>Y1</th>
+                <th>Y2</th>
+                <th>Y3</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="labelcell">LT Sites</td><td><input id="ltSites" type="number" value="8"></td><td class="tiny">—</td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">LT Rate / Month</td><td><input id="ltRate" type="number" value="700"></td><td class="tiny">—</td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">LT Occupancy</td><td><input id="ltOcc" type="number" step="0.01" value="0.90"></td><td class="tiny">—</td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">STR RV Sites at Start (Y1)</td><td class="tiny">—</td><td><input id="y1StrSitesStart" type="number" value="13"></td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">STR RV Sites After Ramp (Y1)</td><td class="tiny">—</td><td><input id="y1StrSitesRamp" type="number" value="22"></td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">STR RV Sites</td><td class="tiny">—</td><td class="tiny">Calculated from start + ramp</td><td><input id="y2StrSites" type="number" value="22"></td><td><input id="y3StrSites" type="number" value="22"></td></tr>
+              <tr><td class="labelcell">STR ADR</td><td class="tiny">—</td><td><input id="y1StrRate" type="number" value="60"></td><td><input id="y2StrRate" type="number" value="65"></td><td><input id="y3StrRate" type="number" value="70"></td></tr>
+              <tr><td class="labelcell">STR Occupancy</td><td class="tiny">—</td><td><input id="y1StrOcc" type="number" step="0.01" value="0.50"></td><td><input id="y2StrOcc" type="number" step="0.01" value="0.60"></td><td><input id="y3StrOcc" type="number" step="0.01" value="0.65"></td></tr>
+              <tr><td class="labelcell">New STR RV Sites Live Month (Y1)</td><td class="tiny">—</td><td><input id="rvRampMonth1" type="number" min="1" max="12" value="6"></td><td class="tiny">—</td><td class="tiny">—</td></tr>
+                          </tbody>
+          </table>
+        </div>
+
+        <div class="inline-help note">
+          <strong>Year 1 CapEx disclaimer:</strong> use the bottom <strong>CapEx</strong> row as the total yearly CapEx. As a starting point, assume roughly <strong>$70,000</strong> of Year 1 total CapEx is for the new RV spots, with the remainder primarily for landscaping and site improvement.
+        </div>
+
+        <div class="section-title">Lodging Matrix</div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Static</th>
+                <th>Y1</th>
+                <th>Y2</th>
+                <th>Y3</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="labelcell">Park Models Count</td><td><input id="pmCount" type="number" value="2"></td><td class="tiny">—</td><td class="tiny">—</td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">Park Models ADR</td><td class="tiny">—</td><td><input id="pmRate1" type="number" value="150"></td><td><input id="pmRate2" type="number" value="150"></td><td><input id="pmRate3" type="number" value="150"></td></tr>
+              <tr><td class="labelcell">Park Models Occupancy</td><td class="tiny">—</td><td><input id="pmOcc1" type="number" step="0.01" value="0.45"></td><td><input id="pmOcc2" type="number" step="0.01" value="0.55"></td><td><input id="pmOcc3" type="number" step="0.01" value="0.60"></td></tr>
+
+              <tr><td class="labelcell">House ADR</td><td class="tiny">—</td><td><input id="houseRate1" type="number" value="200"></td><td><input id="houseRate2" type="number" value="200"></td><td><input id="houseRate3" type="number" value="200"></td></tr>
+              <tr><td class="labelcell">House Occupancy</td><td class="tiny">—</td><td><input id="houseOcc1" type="number" step="0.01" value="0.45"></td><td><input id="houseOcc2" type="number" step="0.01" value="0.55"></td><td><input id="houseOcc3" type="number" step="0.01" value="0.60"></td></tr>
+              
+              <tr><td class="labelcell">Glamping Units</td><td class="tiny">—</td><td><input id="glampCount1" type="number" value="0" disabled></td><td><input id="glampCount2" type="number" value="2"></td><td><input id="glampCount3" type="number" value="4"></td></tr>
+              <tr><td class="labelcell">Glamping Launch Month (Y2)</td><td class="tiny">—</td><td class="tiny">—</td><td><input id="glampLaunchMonth2" type="number" min="1" max="12" value="4"></td><td class="tiny">—</td></tr>
+              <tr><td class="labelcell">Glamping ADR</td><td class="tiny">—</td><td><input id="glampRate1" type="number" value="90"></td><td><input id="glampRate2" type="number" value="90"></td><td><input id="glampRate3" type="number" value="90"></td></tr>
+              <tr><td class="labelcell">Glamping Occupancy</td><td class="tiny">—</td><td><input id="glampOcc1" type="number" step="0.01" value="0"></td><td><input id="glampOcc2" type="number" step="0.01" value="0.45"></td><td><input id="glampOcc3" type="number" step="0.01" value="0.55"></td></tr>
+              <tr><td class="labelcell tiny" colspan="5">Glamping is not active at all in Year 1. Year 2 revenue is reduced based on the Glamping Launch Month.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-title">Other Revenue Matrix</div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Static</th>
+                <th>Y1</th>
+                <th>Y2</th>
+                <th>Y3</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="labelcell">Agri Events Revenue</td><td class="tiny">—</td><td><input id="agri1" type="number" value="0"></td><td><input id="agri2" type="number" value="43333"></td><td><input id="agri3" type="number" value="50000"></td></tr>
+              <tr><td class="labelcell">Farmer Share Revenue</td><td class="tiny">—</td><td><input id="farm1" type="number" value="0"></td><td><input id="farm2" type="number" value="20000"></td><td><input id="farm3" type="number" value="30000"></td></tr>
+              <tr><td class="labelcell">Kayak Revenue</td><td class="tiny">—</td><td><input id="kayak1" type="number" value="0"></td><td><input id="kayak2" type="number" value="16667"></td><td><input id="kayak3" type="number" value="20000"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section-title">Operating Expense Matrix</div>
+        <div class="matrix-wrap">
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Expense</th>
+                <th>Static</th>
+                <th>Y1</th>
+                <th>Y2</th>
+                <th>Y3</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="labelcell">Marketing Cost</td><td class="tiny">—</td><td><input id="marketing1" type="number" value="40000"></td><td><input id="marketing2" type="number" value="90000"></td><td><input id="marketing3" type="number" value="90000"></td></tr>
+              <tr><td class="labelcell">Utility Cost</td><td class="tiny">—</td><td><input id="utility1" type="number" value="30000"></td><td><input id="utility2" type="number" value="45000"></td><td><input id="utility3" type="number" value="45000"></td></tr>
+              <tr><td class="labelcell">Maintenance</td><td class="tiny">—</td><td><input id="maintenance1" type="number" value="20000"></td><td><input id="maintenance2" type="number" value="30000"></td><td><input id="maintenance3" type="number" value="35000"></td></tr>
+              <tr><td class="labelcell">Onsite Host</td><td class="tiny">—</td><td><input id="onsiteHost1" type="number" value="0"></td><td><input id="onsiteHost2" type="number" value="45000"></td><td><input id="onsiteHost3" type="number" value="50000"></td></tr>
+              <tr><td class="labelcell">General Overhead</td><td class="tiny">—</td><td><input id="generalOverhead1" type="number" value="25000"></td><td><input id="generalOverhead2" type="number" value="25000"></td><td><input id="generalOverhead3" type="number" value="25000"></td></tr>
+              <tr><td class="labelcell">CapEx</td><td class="tiny">—</td><td><input id="capex1" type="number" value="100000"></td><td><input id="capex2" type="number" value="45000"></td><td><input id="capex3" type="number" value="15000"></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="inline-help note"><strong>Expense structure:</strong> revenue and expenses are now split into separate boxes. Glamping now begins in Year 2, includes a Year 2 launch month, and ties build / expansion CapEx to the rollout timing.</div>
+
+        <div class="btns">
+          <button id="recalcBtn">Recalculate</button>
+          <button class="secondary" id="saveBtn">Save Assumptions</button>
+          <button class="secondary" id="resetBtn">Reset Defaults</button>
+          <button class="secondary" id="exportLenderPdfBtn">Lender PDF</button>
+          <button class="secondary" id="exportInvestorPdfBtn">Investor PDF</button>
+          <button class="secondary" id="exportProformaPdfBtn">Pro Forma PDF</button>
+          <button class="secondary" id="exportSpreadsheetBtn">Spreadsheet CSV</button>
+        </div>
+        <div class="footer-note">This version ties Year 1 RV STR revenue to ramp timing, shows NOI sensitivity by ramp month, and includes browser-based lender / investor PDF export. If values ever look stuck at zero, click <strong>Reset Defaults</strong> once to clear saved assumptions from an older version.</div>
+      </div>
+    </div>
+
+    <div>
+      <div id="panel-dashboard" class="panel">
+        <div class="metrics">
+          <div class="metric"><div class="label">Year 1 NOI</div><div class="value" id="metricY1Noi">$0</div></div>
+          <div class="metric"><div class="label">Year 2 NOI</div><div class="value" id="metricY2Noi">$0</div></div>
+          <div class="metric"><div class="label">Year 3 NOI</div><div class="value" id="metricY3Noi">$0</div></div>
+          <div class="metric"><div class="label">Year 1 Cash Flow</div><div class="value" id="metricY1Cf">$0</div></div>
+          <div class="metric"><div class="label">Year 2 DSCR</div><div class="value" id="metricY2Dscr">0.00x</div><div class="hint" id="metricY2DscrHint"></div></div>
+          <div class="metric"><div class="label">Stabilized Value</div><div class="value" id="metricValue">$0</div></div>
+          <div class="metric"><div class="label">Senior Loan</div><div class="value" id="metricLoan">$0</div></div>
+          <div class="metric"><div class="label">Annual Senior Debt</div><div class="value" id="metricDebt">$0</div><div class="hint" id="metricDebtHint"></div></div>
+        </div>
+
+        <div class="card">
+          <h3>Quick Read <span class="status-pill" id="dealStatus">Calculating…</span></h3>
+          <div class="note" id="quickRead"></div>
+        </div>
+      </div>
+
+      <div id="panel-annual" class="panel panel-hidden">
+        <div class="card">
+          <h3>Annual Pro Forma</h3>
+          <table id="annualTable"></table>
+        </div>
+      </div>
+
+      <div id="panel-monthly" class="panel panel-hidden">
+        <div class="card">
+          <h3>Year 1 NOI Sensitivity by RV Ramp Month</h3>
+          <div class="note" id="rvRampSensitivityNote">This table shows how Year 1 NOI changes when STR RV sites ramp from 13 at close to 22 after launch. Glamping remains zero in Year 1.</div>
+          <table id="rvRampSensitivityTable"></table>
+        </div>
+      </div>
+
+      <div id="panel-lender" class="panel panel-hidden">
+        <div class="card">
+          <h3>Lender View</h3>
+          <div class="metrics">
+            <div class="metric"><div class="label">Max Supportable Loan</div><div class="value" id="lenderMaxLoan">$0</div><div class="hint">Based on Year 2 NOI and DSCR target</div></div>
+            <div class="metric"><div class="label">Supportable LTV</div><div class="value" id="lenderSupportLtv">0.0%</div><div class="hint">% of purchase price</div></div>
+            <div class="metric"><div class="label">Debt Yield</div><div class="value" id="lenderDebtYield">0.0%</div><div class="hint">Year 2 NOI / senior loan</div></div>
+            <div class="metric"><div class="label">Break-even STR RV Occ</div><div class="value" id="lenderBreakevenOcc">0.0%</div><div class="hint" id="lenderBreakevenHint">Year 2 levered cash flow = 0</div></div>
+          </div>
+          <table id="lenderTable"></table>
+          <div class="footer-note">This lender view sizes the senior loan off Year 2 NOI, which is the first more stabilized year in this model.</div>
+        </div>
+      </div>
+
+      <div id="panel-lender-summary" class="panel panel-hidden">
+        <div class="card">
+          <h3>Lender Executive Summary</h3>
+          <div class="metrics">
+            <div class="metric"><div class="label">Current NOI</div><div class="value" id="lenderSummaryCurrentNoi">$0</div><div class="hint">Current / going-in operations only</div></div>
+            <div class="metric"><div class="label">Year 2 NOI</div><div class="value" id="lenderSummaryY2Noi">$0</div><div class="hint">First stabilized year</div></div>
+            <div class="metric"><div class="label">Year 2 DSCR</div><div class="value" id="lenderSummaryY2Dscr">0.00x</div><div class="hint">At current senior loan</div></div>
+            <div class="metric"><div class="label">Debt Yield</div><div class="value" id="lenderSummaryDebtYield">0.0%</div><div class="hint">Year 2 NOI / senior loan</div></div>
+          </div>
+          <div class="note" id="lenderSummaryText"></div>
+          <table id="lenderSummaryTable"></table>
+        </div>
+      </div>
+
+      <div id="panel-investor" class="panel panel-hidden">
+        <div class="card">
+          <h3>Investor View</h3>
+          <div class="metrics">
+            <div class="metric"><div class="label">Estimated Equity Need</div><div class="value" id="investorEquityNeed">$0</div><div class="hint">Acquisition basis - debt sources</div></div>
+            <div class="metric"><div class="label">Acquisition Basis</div><div class="value" id="investorAcqBasis">$0</div><div class="hint">Purchase + closing costs</div></div>
+            <div class="metric"><div class="label">Total Project Basis</div><div class="value" id="investorProjectBasis">$0</div><div class="hint">Acquisition basis + total CapEx</div></div>
+            <div class="metric"><div class="label">Stabilized Value</div><div class="value" id="investorStabilizedValue">$0</div><div class="hint">Year 3 NOI / exit cap</div></div>
+            <div class="metric"><div class="label">Value Creation</div><div class="value" id="investorValueCreation">$0</div><div class="hint">Stabilized value - purchase price</div></div>
+            <div class="metric"><div class="label">Year 3 Yield on Total Project Basis</div><div class="value" id="investorYieldOnCost">0.0%</div><div class="hint">Year 3 NOI / total project basis</div></div>
+            <div class="metric"><div class="label">Year 1 Cash-on-Cost</div><div class="value" id="investorY1CashOnCost">0.0%</div><div class="hint">Year 1 cash flow / equity need</div></div>
+            <div class="metric"><div class="label">Year 2 Cash-on-Cost</div><div class="value" id="investorY2CashOnCost">0.0%</div><div class="hint">Year 2 cash flow / equity need</div></div>
+            <div class="metric"><div class="label">Year 3 Cash-on-Cost</div><div class="value" id="investorY3CashOnCost">0.0%</div><div class="hint">Year 3 cash flow / equity need</div></div>
+            <div class="metric"><div class="label">Equity Multiple (3yr)</div><div class="value" id="investorEquityMultiple">0.00x</div><div class="hint">Cumulative cash flow + value creation / equity</div></div>
+          </div>
+          <table id="investorTable"></table>
+          <div class="footer-note">This investor view focuses on equity needed, value creation, yield on cost, and simple 3-year cash-on-cash style returns.</div>
+        </div>
+      </div>
+
+      <div id="panel-scenarios" class="panel panel-hidden">
+        <div class="card">
+          <h3>Scenario Comparison</h3>
+          <div class="metrics">
+            <div class="metric"><div class="label">Worst Case DSCR</div><div class="value" id="scenarioWorstDscr">0.00x</div><div class="hint">Year 2 DSCR</div></div>
+            <div class="metric"><div class="label">Base Case DSCR</div><div class="value" id="scenarioBaseDscr">0.00x</div><div class="hint">Year 2 DSCR</div></div>
+            <div class="metric"><div class="label">Best Case DSCR</div><div class="value" id="scenarioBestDscr">0.00x</div><div class="hint">Year 2 DSCR</div></div>
+            <div class="metric"><div class="label">Risk Indicator</div><div class="value" id="scenarioRiskIndicator">—</div><div class="hint" id="scenarioRiskHint"></div></div>
+          </div>
+          <table id="scenarioTable"></table>
+          <div class="footer-note">Worst case pressures occupancy / ADR, removes ancillary upside, and inflates expenses. Best case assumes cleaner execution and modest upside.</div>
+        </div>
+      </div>
+
+      <div id="panel-summary" class="panel panel-hidden">
+        <div class="card">
+          <h3>Assumptions Summary</h3>
+          <div class="note" id="summaryText"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const storageKey = "cloverleaf_single_capex_row_v2_assumptions";
+
+  const defaults = {
+    purchasePrice:2000000, exitCap:0.09, seniorPct:0.80, seniorRate:0.07, seniorType:"io_then_amort",
+    ioMonths:12, amortYears:25, balloonYear:5, sellerNotePct:0.10, sellerNoteRate:0.045, sellerDeferMonths:12,
+    closingCostPct:0.015, dscrTarget:1.25,
+    useHouse:true, useParkModels:true, useGlamping:true, useAgri:true, useFarm:true, useKayak:true,
+    ltSites:8, ltRate:700, ltOcc:0.90, rvRampMonth1:6,
+    y1StrSitesStart:13, y1StrSitesRamp:22, y2StrSites:22, y3StrSites:22,
+    y1StrRate:60, y2StrRate:65, y3StrRate:70,
+    y1StrOcc:0.50, y2StrOcc:0.60, y3StrOcc:0.65,
+
+    pmCount:2, pmRate1:150, pmRate2:150, pmRate3:150, pmOcc1:0.45, pmOcc2:0.55, pmOcc3:0.60,
+    houseRate1:200, houseRate2:200, houseRate3:200, houseOcc1:0.45, houseOcc2:0.55, houseOcc3:0.60,
+    glampCount1:0, glampCount2:2, glampCount3:4, glampRate1:90, glampRate2:90, glampRate3:90, glampOcc1:0, glampOcc2:0.45, glampOcc3:0.55, glampLaunchMonth2:4,
+
+    marketing1:40000, marketing2:90000, marketing3:90000,
+    utility1:30000, utility2:45000, utility3:45000,
+    capex1:100000, capex2:45000, capex3:15000, generalOverhead1:25000, generalOverhead2:25000, generalOverhead3:25000, maintenance1:20000, maintenance2:30000, maintenance3:35000, onsiteHost1:0, onsiteHost2:45000, onsiteHost3:50000,
+
+    agri1:0, agri2:43333, agri3:50000,
+    farm1:0, farm2:20000, farm3:30000,
+    kayak1:0, kayak2:16667, kayak3:20000
+  };
+
+  function num(id, fallback = 0){
+    const el = $(id);
+    if(!el) return fallback;
+    const val = parseFloat(el.value);
+    return Number.isFinite(val) ? val : fallback;
+  }
+  function checked(id){
+    const el = $(id);
+    return !!(el && el.checked);
+  }
+  function pmt(rate, nper, pv){ if(rate===0) return pv/nper; return (rate*pv)/(1-Math.pow(1+rate,-nper)); }
+
+  function loadDefaults(){
+    Object.entries(defaults).forEach(([k,v])=>{
+      if(!$(k)) return;
+      if($(k).type === "checkbox") $(k).checked = !!v;
+      else $(k).value = v;
+    });
+  }
+  function saveAssumptions(){
+    const data = {};
+    Object.keys(defaults).forEach(k=>{
+      if(!$(k)) return;
+      data[k] = $(k).type === "checkbox" ? $(k).checked : $(k).value;
+    });
+    localStorage.setItem(storageKey, JSON.stringify(data));
+  }
+  function loadSaved(){
+    const raw = localStorage.getItem(storageKey);
+    if(!raw) return false;
+    try{
+      const data = JSON.parse(raw);
+      Object.keys(defaults).forEach(k=>{
+        if(!$(k) || data[k] === undefined || data[k] === null || data[k] === "") return;
+        if($(k).type === "checkbox") $(k).checked = !!data[k];
+        else $(k).value = data[k];
+      });
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function annualSeniorDebt(loanAmt, annualRate, type, ioMonths, amortYears, year, balloonYear){
+    if(year > balloonYear) return 0;
+    if(type === "io") return loanAmt * annualRate;
+    if(type === "amort") return pmt(annualRate/12, amortYears*12, loanAmt) * 12;
+    if(year === 1){
+      const ioPart = Math.min(ioMonths,12)/12;
+      const amortPart = Math.max(12 - Math.min(ioMonths,12),0)/12;
+      const ioDebt = loanAmt * annualRate;
+      const amortDebt = pmt(annualRate/12, amortYears*12, loanAmt) * 12;
+      return ioDebt*ioPart + amortDebt*amortPart;
+    }
+    return pmt(annualRate/12, amortYears*12, loanAmt) * 12;
+  }
+  function sellerNoteDebt(noteAmt, rate, deferMonths, year){
+    if(year === 1 && deferMonths >= 12) return 0;
+    return noteAmt * rate;
+  }
+  function lodgingRevenue(count, adr, occ){ return count * adr * 365 * occ; }
+  function activeMonthFraction(startMonth){
+    const m = Math.max(1, Math.min(12, startMonth || 1));
+    return (13 - m) / 12;
+  }
+  function yearOneStrRvRevenueAtRampMonth(rampMonth, strRate, strOcc){
+    const startSites = num("y1StrSitesStart");
+    const rampSites = num("y1StrSitesRamp");
+    const incrementalSites = Math.max(rampSites - startSites, 0);
+    const baseRevenue = startSites * strRate * 365 * strOcc;
+    const incrementalRevenue = incrementalSites * strRate * 365 * strOcc * activeMonthFraction(rampMonth);
+    return baseRevenue + incrementalRevenue;
+  }
+  function money(v){ return "$" + (v||0).toLocaleString(undefined,{maximumFractionDigits:0}); }
+  function multiple(v){ return (v||0).toFixed(2) + "x"; }
+  
+  function fmtPct(v){ return ((v||0)*100).toFixed(1) + "%"; }
+  function annualDebtPerDollar(annualRate, type, ioMonths, amortYears){
+    if(type === "io") return annualRate;
+    if(type === "amort") return pmt(annualRate/12, amortYears*12, 1) * 12;
+    const ioPart = Math.min(ioMonths,12)/12;
+    const amortPart = Math.max(12 - Math.min(ioMonths,12),0)/12;
+    const ioDebtPerDollar = annualRate;
+    const amortDebtPerDollar = pmt(annualRate/12, amortYears*12, 1) * 12;
+    return (ioDebtPerDollar * ioPart) + (amortDebtPerDollar * amortPart);
+  }
+  function calculateSupportableLoan(noi, dscrTarget, annualRate, type, ioMonths, amortYears){
+    const debtPerDollar = annualDebtPerDollar(annualRate, type, ioMonths, amortYears);
+    if(!isFinite(noi) || noi <= 0 || !isFinite(dscrTarget) || dscrTarget <= 0 || !isFinite(debtPerDollar) || debtPerDollar <= 0) return 0;
+    const maxAnnualDebt = noi / dscrTarget;
+    return maxAnnualDebt / debtPerDollar;
+  }
+  function yearTwoCashFlowAtStrRvOcc(testOcc){
+    const ltRevenue = num("ltSites") * num("ltRate") * 12 * num("ltOcc");
+    const rvStrRevenue = num("y2StrSites") * num("y2StrRate") * 365 * testOcc;
+    const pmRevenue = checked("useParkModels") ? lodgingRevenue(num("pmCount"), num("pmRate2"), num("pmOcc2")) : 0;
+    const houseRevenue = checked("useHouse") ? lodgingRevenue(1, num("houseRate2"), num("houseOcc2")) : 0;
+    let glampRevenue = 0;
+    if(checked("useGlamping")){
+      const y2FullRevenue = lodgingRevenue(num("glampCount2"), num("glampRate2"), num("glampOcc2"));
+      glampRevenue = y2FullRevenue * activeMonthFraction(num("glampLaunchMonth2"));
+    }
+    const agriRevenue = checked("useAgri") ? num("agri2") : 0;
+    const farmRevenue = checked("useFarm") ? num("farm2") : 0;
+    const kayakRevenue = checked("useKayak") ? num("kayak2") : 0;
+    const totalRevenue = ltRevenue + rvStrRevenue + pmRevenue + houseRevenue + glampRevenue + agriRevenue + farmRevenue + kayakRevenue;
+    const operatingCosts = num("marketing2") + num("utility2") + num("generalOverhead2") + num("maintenance2") + num("onsiteHost2");
+    const noi = totalRevenue - operatingCosts;
+
+    const purchasePrice = num("purchasePrice");
+    const seniorLoan = purchasePrice * num("seniorPct");
+    const sellerNoteAmt = purchasePrice * num("sellerNotePct");
+    const seniorDebt = annualSeniorDebt(seniorLoan, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"), 2, num("balloonYear"));
+    const sellerDebt = sellerNoteDebt(sellerNoteAmt, num("sellerNoteRate"), num("sellerDeferMonths"), 2);
+    const capex = num("capex2");
+    return noi - seniorDebt - sellerDebt - capex;
+  }
+  function calculateBreakevenStrRvOcc(){
+    const cfLow = yearTwoCashFlowAtStrRvOcc(0);
+    const cfHigh = yearTwoCashFlowAtStrRvOcc(0.95);
+    if(cfLow >= 0) return 0;
+    if(cfHigh < 0) return null;
+    let low = 0, high = 0.95;
+    for(let i=0;i<40;i++){
+      const mid = (low + high) / 2;
+      const cf = yearTwoCashFlowAtStrRvOcc(mid);
+      if(cf >= 0) high = mid; else low = mid;
+    }
+    return high;
+  }
+  function renderLenderView(years, seniorLoan){
+    const dscrTarget = num("dscrTarget");
+    const seniorRate = num("seniorRate");
+    const seniorType = $("seniorType").value;
+    const ioMonths = num("ioMonths");
+    const amortYears = num("amortYears");
+    const purchasePrice = num("purchasePrice");
+    const supportableLoan = calculateSupportableLoan(years[1].noi, dscrTarget, seniorRate, seniorType, ioMonths, amortYears);
+    const supportableLtv = purchasePrice > 0 ? supportableLoan / purchasePrice : 0;
+    const debtYield = seniorLoan > 0 ? years[1].noi / seniorLoan : 0;
+    const breakevenOcc = calculateBreakevenStrRvOcc();
+    if($("lenderMaxLoan")) $("lenderMaxLoan").textContent = money(supportableLoan);
+    if($("lenderSupportLtv")) $("lenderSupportLtv").textContent = fmtPct(supportableLtv);
+    if($("lenderDebtYield")) $("lenderDebtYield").textContent = fmtPct(debtYield);
+    if($("lenderBreakevenOcc")){
+      $("lenderBreakevenOcc").textContent = breakevenOcc === null ? ">95%" : fmtPct(breakevenOcc);
+      $("lenderBreakevenHint").innerHTML = breakevenOcc === null ? '<span class="bad">Not reached within realistic occupancy</span>' : (breakevenOcc <= 0.65 ? '<span class="good">Achievable range</span>' : '<span class="warn">Tight execution needed</span>');
+    }
+    const loanGap = supportableLoan - seniorLoan;
+    const lenderTable = $("lenderTable");
+    if(lenderTable){
+      lenderTable.innerHTML = `
+        <thead>
+          <tr><th>Metric</th><th>Value</th><th>Comment</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Current Senior Loan</td><td>${money(seniorLoan)}</td><td>Based on purchase price × senior loan %</td></tr>
+          <tr><td>Max Supportable Loan</td><td>${money(supportableLoan)}</td><td>Sized to Year 2 NOI and DSCR target of ${dscrTarget.toFixed(2)}x</td></tr>
+          <tr><td>Loan Gap / Cushion</td><td class="${loanGap >= 0 ? 'good' : 'bad'}">${money(loanGap)}</td><td>${loanGap >= 0 ? 'Current senior loan is within supportable sizing' : 'Current senior loan exceeds supportable sizing'}</td></tr>
+          <tr><td>Supportable LTV</td><td>${fmtPct(supportableLtv)}</td><td>Supportable loan ÷ purchase price</td></tr>
+          <tr><td>Debt Yield</td><td>${fmtPct(debtYield)}</td><td>Year 2 NOI ÷ current senior loan</td></tr>
+          <tr><td>Break-even Y2 STR RV Occupancy</td><td>${breakevenOcc === null ? '>95%' : fmtPct(breakevenOcc)}</td><td>${breakevenOcc === null ? 'Deal does not break even within realistic Year 2 STR RV occupancy' : 'Occupancy required for Year 2 levered cash flow to reach zero'}</td></tr>
+        </tbody>`;
+    }
+  }
+
+  function escHtml(str){
+    return String(str ?? "").replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  }
+  const PROPERTY_NAME = "Cloverleaf RV Village";
+  const PROPERTY_ADDRESS = "3380 W Cloverleaf Ranch Rd, Camp Verde, AZ 86322";
+  const PROPERTY_PHONE = "(928) 853-3553";
+  const PROPERTY_PHOTO_URL = "https://img1.wsimg.com/isteam/ip/2ce9d8f4-e05e-4f77-bdea-d023a4c72f90/f0445f7b-a0ef-4ea7-8458-917ad8d9b187.jpg/:/cr=t:0%25,l:0%25,w:100%25,h:100%25";
+  const PROPERTY_MAP_LINK = "https://www.google.com/maps/search/?api=1&query=3380%20W%20Cloverleaf%20Ranch%20Rd%2C%20Camp%20Verde%2C%20AZ%2086322";
+  function buildLenderPdfHtml(years, seniorLoan){
+    const purchasePrice = num("purchasePrice");
+    const dscrTarget = num("dscrTarget");
+    const supportableLoan = calculateSupportableLoan(years[1].noi, dscrTarget, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"));
+    const supportableLtv = purchasePrice > 0 ? supportableLoan / purchasePrice : 0;
+    const debtYield = seniorLoan > 0 ? years[1].noi / seniorLoan : 0;
+    const breakevenOcc = calculateBreakevenStrRvOcc();
+    const loanGap = supportableLoan - seniorLoan;
+    const current = getCurrentOperationsSnapshot();
+    return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${PROPERTY_NAME} - Lender Summary</title>
+<style>
+body{font-family:Arial,sans-serif;margin:34px;color:#1f2937}
+h1{margin:0;font-size:30px;letter-spacing:.01em}
+h2{margin:24px 0 10px;font-size:18px}
+h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#475569}
+p{margin:0 0 10px;line-height:1.45}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:20px}
+.header-right{text-align:right;font-size:12px;color:#475569}
+.address{margin-top:8px;color:#475569}
+.hero{margin:18px 0 20px}
+.hero-card{border:1px solid #d1d5db;border-radius:14px;overflow:hidden;background:#fff;max-width:720px}
+.hero-card img{display:block;width:100%;height:280px;object-fit:cover}
+.hero-card .caption{padding:10px 12px;font-size:12px;color:#475569}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.card{border:1px solid #d1d5db;border-radius:12px;padding:12px;background:#fff}
+.label{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;letter-spacing:.06em}
+.value{font-size:23px;font-weight:700;margin-top:4px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border-bottom:1px solid #e5e7eb;padding:9px 8px;text-align:left}
+th{font-size:11px;text-transform:uppercase;color:#64748b;letter-spacing:.05em}
+.right{text-align:right}
+.note{margin-top:18px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}
+.good{color:#15803d}.bad{color:#b91c1c}.warn{color:#b45309}
+.small{font-size:12px;color:#475569}
+ul{margin:8px 0 0 18px;padding:0}
+li{margin:0 0 6px}
+@media print { body{margin:24px} a{color:inherit;text-decoration:none} }
+</style></head><body>
+<div class="header">
+  <div>
+    <h1>${PROPERTY_NAME}</h1>
+    <div class="address">${PROPERTY_ADDRESS}</div>
+    <div class="small">Prepared for lender review • Camp Verde, Arizona</div>
+  </div>
+  <div class="header-right">
+    <div><strong>Lender Summary</strong></div>
+    <div>Generated from underwriting model</div>
+    <div>${new Date().toLocaleDateString()}</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-card">
+    <img src="${PROPERTY_PHOTO_URL}" alt="Property photo">
+    <div class="caption">Existing property photo</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card"><div class="label">Purchase Price</div><div class="value">${money(purchasePrice)}</div></div>
+  <div class="card"><div class="label">Current Senior Loan</div><div class="value">${money(seniorLoan)}</div></div>
+  <div class="card"><div class="label">Year 2 NOI</div><div class="value">${money(years[1].noi)}</div></div>
+  <div class="card"><div class="label">Year 2 DSCR</div><div class="value">${multiple(years[1].dscr)}</div></div>
+  <div class="card"><div class="label">Debt Yield</div><div class="value">${fmtPct(debtYield)}</div></div>
+  <div class="card"><div class="label">Supportable LTV</div><div class="value">${fmtPct(supportableLtv)}</div></div>
+  <div class="card"><div class="label">Max Supportable Loan</div><div class="value">${money(supportableLoan)}</div></div>
+  <div class="card"><div class="label">Break-even STR RV Occ</div><div class="value">${breakevenOcc === null ? '&gt;95%' : fmtPct(breakevenOcc)}</div></div>
+</div>
+
+<h2>Credit Highlights</h2>
+<div class="note">
+  <p><strong>Current operating base:</strong> modeled current NOI is <strong>${money(current.currentNoi)}</strong> with <strong>${current.currentStrSites}</strong> STR RV sites at close and long-term sites already in place.</p>
+  <p><strong>Stabilization plan:</strong> expand STR RV sites from <strong>${current.currentStrSites}</strong> to <strong>${current.targetStrSites}</strong>, improve occupancy and ADR, and treat park models / house lodging / glamping as secondary upside.</p>
+  <p><strong>Underwriting year:</strong> Year 2 is used as the first stabilized year for lender sizing.</p>
+</div>
+
+<h2>Key Credit Metrics</h2>
+<table>
+  <thead><tr><th>Metric</th><th>Value</th><th>Commentary</th></tr></thead>
+  <tbody>
+    <tr><td>Current Senior Loan</td><td>${money(seniorLoan)}</td><td>Based on purchase price × senior loan %</td></tr>
+    <tr><td>Max Supportable Loan</td><td>${money(supportableLoan)}</td><td>Sized to Year 2 NOI and DSCR target of ${dscrTarget.toFixed(2)}x</td></tr>
+    <tr><td>Loan Gap / Cushion</td><td class="${loanGap >= 0 ? 'good' : 'bad'}">${money(loanGap)}</td><td>${loanGap >= 0 ? 'Current senior loan is within supportable sizing' : 'Current senior loan exceeds supportable sizing'}</td></tr>
+    <tr><td>Supportable LTV</td><td>${fmtPct(supportableLtv)}</td><td>Supportable loan ÷ purchase price</td></tr>
+    <tr><td>Debt Yield</td><td>${fmtPct(debtYield)}</td><td>Year 2 NOI ÷ current senior loan</td></tr>
+    <tr><td>Break-even Y2 STR RV Occupancy</td><td>${breakevenOcc === null ? '>95%' : fmtPct(breakevenOcc)}</td><td>${breakevenOcc === null ? 'Deal does not break even within realistic occupancy' : 'Occupancy required for Year 2 levered cash flow to reach zero'}</td></tr>
+  </tbody>
+</table>
+
+<h2>Three-Year Snapshot</h2>
+<table>
+  <thead><tr><th>Metric</th><th class="right">Year 1</th><th class="right">Year 2</th><th class="right">Year 3</th></tr></thead>
+  <tbody>
+    <tr><td>Total Revenue</td><td class="right">${money(years[0].totalRevenue)}</td><td class="right">${money(years[1].totalRevenue)}</td><td class="right">${money(years[2].totalRevenue)}</td></tr>
+    <tr><td>NOI</td><td class="right">${money(years[0].noi)}</td><td class="right">${money(years[1].noi)}</td><td class="right">${money(years[2].noi)}</td></tr>
+    <tr><td>Total Debt Service</td><td class="right">${money(years[0].totalDebt)}</td><td class="right">${money(years[1].totalDebt)}</td><td class="right">${money(years[2].totalDebt)}</td></tr>
+    <tr><td>Levered Cash Flow</td><td class="right">${money(years[0].cashFlow)}</td><td class="right">${money(years[1].cashFlow)}</td><td class="right">${money(years[2].cashFlow)}</td></tr>
+    <tr><td>DSCR</td><td class="right">${multiple(years[0].dscr)}</td><td class="right">${multiple(years[1].dscr)}</td><td class="right">${multiple(years[2].dscr)}</td></tr>
+  </tbody>
+</table>
+
+<h2>Quick Lender Narrative</h2>
+<div class="note">
+  <ul>
+    <li>Loan sizing is anchored to Year 2 as the first more stabilized operating year.</li>
+    <li>The primary value-creation lever is STR RV site expansion and improved occupancy / ADR.</li>
+    <li>Lodging and ancillary revenue provide upside, but the core RV operation remains the base of the story.</li>
+    <li>Debt yield, DSCR, and break-even occupancy are shown above for fast credit screening.</li>
+  </ul>
+</div>
+</body></html>`;
+  }
+  function buildInvestorPdfHtml(years, seniorLoan, stabilizedValue){
+    const purchasePrice = num("purchasePrice");
+    const exitCap = num("exitCap");
+    const closingCosts = purchasePrice * num("closingCostPct");
+    const sellerNoteAmt = purchasePrice * num("sellerNotePct");
+    const acquisitionBasis = purchasePrice + closingCosts;
+    const totalCapex = years[0].capex + years[1].capex + years[2].capex;
+    const totalProjectBasis = acquisitionBasis + totalCapex;
+    const equityNeeded = acquisitionBasis - seniorLoan - sellerNoteAmt;
+
+    const stabilizedValueY2 = exitCap > 0 ? years[1].noi / exitCap : 0;
+    const stabilizedValueY3 = exitCap > 0 ? years[2].noi / exitCap : 0;
+    const lowEndValueCreation = stabilizedValueY2 - purchasePrice;
+    const upsideValueCreation = stabilizedValueY3 - purchasePrice;
+
+    const y1coc = equityNeeded > 0 ? years[0].cashFlow / equityNeeded : 0;
+    const y2coc = equityNeeded > 0 ? years[1].cashFlow / equityNeeded : 0;
+    const y3coc = equityNeeded > 0 ? years[2].cashFlow / equityNeeded : 0;
+    const y2YieldOnCostAcq = acquisitionBasis > 0 ? years[1].noi / acquisitionBasis : 0;
+    const y2YieldOnCostProject = totalProjectBasis > 0 ? years[1].noi / totalProjectBasis : 0;
+    const y3YieldOnCostAcq = acquisitionBasis > 0 ? years[2].noi / acquisitionBasis : 0;
+    const y3YieldOnCostProject = totalProjectBasis > 0 ? years[2].noi / totalProjectBasis : 0;
+
+    const total3yrCash = years[0].cashFlow + years[1].cashFlow + years[2].cashFlow;
+    const lowEndEquityMultiple = equityNeeded > 0 ? (total3yrCash + lowEndValueCreation) / equityNeeded : 0;
+    const upsideEquityMultiple = equityNeeded > 0 ? (total3yrCash + upsideValueCreation) / equityNeeded : 0;
+
+    return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${PROPERTY_NAME} - Investor Summary</title>
+<style>
+body{font-family:Arial,sans-serif;margin:34px;color:#1f2937}
+h1{margin:0;font-size:30px;letter-spacing:.01em}
+h2{margin:24px 0 10px;font-size:18px}
+p{margin:0 0 10px;line-height:1.45}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:20px}
+.header-right{text-align:right;font-size:12px;color:#475569}
+.address{margin-top:8px;color:#475569}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+.card{border:1px solid #d1d5db;border-radius:12px;padding:12px;background:#fff}
+.label{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;letter-spacing:.06em}
+.value{font-size:22px;font-weight:700;margin-top:4px}
+.banner{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin:18px 0}
+.banner-box{border:1px solid #d1d5db;border-radius:14px;padding:14px;background:#f8fafc}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border-bottom:1px solid #e5e7eb;padding:9px 8px;text-align:left}
+th{font-size:11px;text-transform:uppercase;color:#64748b;letter-spacing:.05em}
+.right{text-align:right}
+.note{margin-top:18px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}
+.good{color:#15803d}.bad{color:#b91c1c}
+.small{font-size:12px;color:#475569}
+@media print { body{margin:24px} a{color:inherit;text-decoration:none} }
+</style></head><body>
+<div class="header">
+  <div>
+    <h1>${PROPERTY_NAME}</h1>
+    <div class="address">${PROPERTY_ADDRESS}</div>
+    <div class="small">Prepared for investor review • Camp Verde, Arizona</div>
+  </div>
+  <div class="header-right">
+    <div><strong>Investor Summary</strong></div>
+    <div>Generated from underwriting model</div>
+    <div>${new Date().toLocaleDateString()}</div>
+  </div>
+</div>
+
+<div class="banner">
+  <div class="banner-box">
+    <div class="label">Investment Setup</div>
+    <div class="value">${money(equityNeeded)}</div>
+    <div class="small">Estimated equity need = acquisition basis (purchase + closing) - senior loan - seller note.</div>
+  </div>
+  <div class="banner-box">
+    <div class="label">Value Range</div>
+    <div class="value">${money(stabilizedValueY2)} → ${money(stabilizedValueY3)}</div>
+    <div class="small">Low-end stabilized value uses Year 2 NOI. Upside stabilized value uses Year 3 NOI.</div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card"><div class="label">Estimated Equity Need</div><div class="value">${money(equityNeeded)}</div></div>
+  <div class="card"><div class="label">Acquisition Basis</div><div class="value">${money(acquisitionBasis)}</div></div>
+  <div class="card"><div class="label">Total Project Basis</div><div class="value">${money(totalProjectBasis)}</div></div>
+  <div class="card"><div class="label">Low-End Stabilized Value (Y2)</div><div class="value">${money(stabilizedValueY2)}</div></div>
+  <div class="card"><div class="label">Upside Stabilized Value (Y3)</div><div class="value">${money(stabilizedValueY3)}</div></div>
+  <div class="card"><div class="label">Upside Value Creation</div><div class="value">${money(upsideValueCreation)}</div></div>
+  <div class="card"><div class="label">Year 2 Yield on Project Basis</div><div class="value">${fmtPct(y2YieldOnCostProject)}</div></div>
+  <div class="card"><div class="label">Year 3 Yield on Project Basis</div><div class="value">${fmtPct(y3YieldOnCostProject)}</div></div>
+</div>
+
+<h2>Three-Year Operating Snapshot</h2>
+<table>
+  <thead><tr><th>Metric</th><th class="right">Year 1</th><th class="right">Year 2</th><th class="right">Year 3</th></tr></thead>
+  <tbody>
+    <tr><td>Total Revenue</td><td class="right">${money(years[0].totalRevenue)}</td><td class="right">${money(years[1].totalRevenue)}</td><td class="right">${money(years[2].totalRevenue)}</td></tr>
+    <tr><td>NOI</td><td class="right">${money(years[0].noi)}</td><td class="right">${money(years[1].noi)}</td><td class="right">${money(years[2].noi)}</td></tr>
+    <tr><td>Levered Cash Flow</td><td class="right">${money(years[0].cashFlow)}</td><td class="right">${money(years[1].cashFlow)}</td><td class="right">${money(years[2].cashFlow)}</td></tr>
+    <tr><td>DSCR</td><td class="right">${multiple(years[0].dscr)}</td><td class="right">${multiple(years[1].dscr)}</td><td class="right">${multiple(years[2].dscr)}</td></tr>
+    <tr><td>Cash-on-Cost</td><td class="right">${fmtPct(y1coc)}</td><td class="right">${fmtPct(y2coc)}</td><td class="right">${fmtPct(y3coc)}</td></tr>
+  </tbody>
+</table>
+
+<h2>Low-End vs Upside Value Cases</h2>
+<table>
+  <thead><tr><th>Metric</th><th class="right">Low-End (Y2)</th><th class="right">Upside (Y3)</th></tr></thead>
+  <tbody>
+    <tr><td>Stabilized Value</td><td class="right">${money(stabilizedValueY2)}</td><td class="right">${money(stabilizedValueY3)}</td></tr>
+    <tr><td>Value Creation</td><td class="right">${money(lowEndValueCreation)}</td><td class="right">${money(upsideValueCreation)}</td></tr>
+    <tr><td>Yield on Acquisition Basis</td><td class="right">${fmtPct(y2YieldOnCostAcq)}</td><td class="right">${fmtPct(y3YieldOnCostAcq)}</td></tr>
+    <tr><td>Yield on Total Project Basis</td><td class="right">${fmtPct(y2YieldOnCostProject)}</td><td class="right">${fmtPct(y3YieldOnCostProject)}</td></tr>
+    <tr><td>Equity Multiple</td><td class="right">${multiple(lowEndEquityMultiple)}</td><td class="right">${multiple(upsideEquityMultiple)}</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <p>• The low-end case uses <strong>Year 2 NOI</strong> as the first more stabilized operating year.</p>
+  <p>• The upside case uses <strong>Year 3 NOI</strong> to reflect fuller ramp and stronger execution.</p>
+  <p>• Acquisition basis = purchase price + closing costs. Total project basis = acquisition basis + all modeled CapEx for RV expansion, landscaping, and glamping additions.</p>
+  <p>• This deal is modeled as a value-add expansion from 13 STR RV sites at close to 22 after launch.</p>
+  <p>• Glamping is inactive in Year 1 and begins in Year 2.</p>
+</div>
+</body></html>`;
+  }
+  function openPdfWindow(htmlContent){
+    const win = window.open("", "_blank");
+    if(!win) return;
+    win.document.open();
+    win.document.write(htmlContent);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 300);
+  }
+
+  function renderInvestorView(years, seniorLoan, stabilizedValue){
+    const purchasePrice = num("purchasePrice");
+    const closingCosts = purchasePrice * num("closingCostPct");
+    const sellerNoteAmt = purchasePrice * num("sellerNotePct");
+    const acquisitionBasis = purchasePrice + closingCosts;
+    const totalCapex = years[0].capex + years[1].capex + years[2].capex;
+    const totalProjectBasis = acquisitionBasis + totalCapex;
+    const equityNeeded = acquisitionBasis - seniorLoan - sellerNoteAmt;
+    const stabilizedValueY2 = num("exitCap") > 0 ? years[1].noi / num("exitCap") : 0;
+    const valueCreation = stabilizedValue - purchasePrice;
+    const yocProject = totalProjectBasis > 0 ? years[2].noi / totalProjectBasis : 0;
+    const y1coc = equityNeeded > 0 ? years[0].cashFlow / equityNeeded : 0;
+    const y2coc = equityNeeded > 0 ? years[1].cashFlow / equityNeeded : 0;
+    const y3coc = equityNeeded > 0 ? years[2].cashFlow / equityNeeded : 0;
+    const total3yrCash = years[0].cashFlow + years[1].cashFlow + years[2].cashFlow;
+    const equityMultiple = equityNeeded > 0 ? (total3yrCash + valueCreation) / equityNeeded : 0;
+
+    if($("investorEquityNeed")) $("investorEquityNeed").textContent = money(equityNeeded);
+    if($("investorAcqBasis")) $("investorAcqBasis").textContent = money(acquisitionBasis);
+    if($("investorProjectBasis")) $("investorProjectBasis").textContent = money(totalProjectBasis);
+    if($("investorStabilizedValue")) $("investorStabilizedValue").textContent = money(stabilizedValue);
+    if($("investorValueCreation")) {
+      $("investorValueCreation").textContent = money(valueCreation);
+      $("investorValueCreation").className = "value " + (valueCreation >= 0 ? "good" : "bad");
+    }
+    if($("investorYieldOnCost")) $("investorYieldOnCost").textContent = fmtPct(yocProject);
+    if($("investorY1CashOnCost")) $("investorY1CashOnCost").textContent = fmtPct(y1coc);
+    if($("investorY2CashOnCost")) $("investorY2CashOnCost").textContent = fmtPct(y2coc);
+    if($("investorY3CashOnCost")) $("investorY3CashOnCost").textContent = fmtPct(y3coc);
+    if($("investorEquityMultiple")) $("investorEquityMultiple").textContent = multiple(equityMultiple);
+
+    const investorTable = $("investorTable");
+    if(investorTable){
+      investorTable.innerHTML = `
+        <thead>
+          <tr><th>Metric</th><th>Value</th><th>Comment</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Purchase Price</td><td>${money(purchasePrice)}</td><td>Acquisition price</td></tr>
+          <tr><td>Closing Costs</td><td>${money(closingCosts)}</td><td>Purchase price × closing cost %</td></tr>
+          <tr><td>Acquisition Basis</td><td>${money(acquisitionBasis)}</td><td>Purchase price + closing costs</td></tr>
+          <tr><td>RV Expansion / Landscape / Glamping CapEx</td><td>${money(totalCapex)}</td><td>Total CapEx entered across Years 1–3</td></tr>
+          <tr><td>Total Project Basis</td><td>${money(totalProjectBasis)}</td><td>Acquisition basis + total CapEx</td></tr>
+          <tr><td>Seller Note</td><td>${money(sellerNoteAmt)}</td><td>Included as non-cash source</td></tr>
+          <tr><td>Estimated Equity Need</td><td>${money(equityNeeded)}</td><td>Acquisition basis less senior loan and seller note</td></tr>
+          <tr><td>Stabilized Value (Y3)</td><td>${money(stabilizedValue)}</td><td>Year 3 NOI ÷ exit cap</td></tr>
+          <tr><td>Year 2 Stabilized Value</td><td>${money(stabilizedValueY2)}</td><td>Lower-end stabilized case</td></tr>
+          <tr><td>Estimated Value Creation</td><td class="${valueCreation >= 0 ? 'good' : 'bad'}">${money(valueCreation)}</td><td>Year 3 stabilized value less purchase price</td></tr>
+          <tr><td>Year 3 Yield on Total Project Basis</td><td>${fmtPct(yocProject)}</td><td>Year 3 NOI ÷ total project basis</td></tr>
+          <tr><td>Year 1 Cash-on-Cost</td><td>${fmtPct(y1coc)}</td><td>Year 1 cash flow ÷ equity need</td></tr>
+          <tr><td>Year 2 Cash-on-Cost</td><td>${fmtPct(y2coc)}</td><td>Year 2 cash flow ÷ equity need</td></tr>
+          <tr><td>Year 3 Cash-on-Cost</td><td>${fmtPct(y3coc)}</td><td>Year 3 cash flow ÷ equity need</td></tr>
+          <tr><td>3-Year Equity Multiple</td><td>${multiple(equityMultiple)}</td><td>(3-year cumulative cash flow + Year 3 value creation) ÷ equity need</td></tr>
+        </tbody>`;
+    }
+  }
+
+  function getYearModel(year){
+    const ltRevenue = num("ltSites") * num("ltRate") * 12 * num("ltOcc");
+
+    const strSites = num("y"+year+"StrSites");
+    const strRate = num("y"+year+"StrRate");
+    const strOcc = num("y"+year+"StrOcc");
+    let rvStrRevenue = 0;
+
+    if(year === 1){
+      rvStrRevenue = yearOneStrRvRevenueAtRampMonth(num("rvRampMonth1"), strRate, strOcc);
+    } else {
+      rvStrRevenue = strSites * strRate * 365 * strOcc;
+    }
+
+    const pmRevenue = checked("useParkModels") ? lodgingRevenue(num("pmCount"), num("pmRate"+year), num("pmOcc"+year)) : 0;
+    const houseRevenue = checked("useHouse") ? lodgingRevenue(1, num("houseRate"+year), num("houseOcc"+year)) : 0;
+
+    let glampUnits = 0;
+    let glampRevenue = 0;
+    if(checked("useGlamping")){
+      if(year === 1){
+        glampUnits = 0;
+        glampRevenue = 0;
+      } else if(year === 2){
+        glampUnits = num("glampCount2");
+        const y2FullRevenue = lodgingRevenue(glampUnits, num("glampRate2"), num("glampOcc2"));
+        glampRevenue = y2FullRevenue * activeMonthFraction(num("glampLaunchMonth2"));
+      } else if(year === 3){
+        glampUnits = num("glampCount3");
+        glampRevenue = lodgingRevenue(glampUnits, num("glampRate3"), num("glampOcc3"));
+      }
+    }
+
+    const agriRevenue = checked("useAgri") ? num("agri"+year) : 0;
+    const farmRevenue = checked("useFarm") ? num("farm"+year) : 0;
+    const kayakRevenue = checked("useKayak") ? num("kayak"+year) : 0;
+
+    const totalRevenue = ltRevenue + rvStrRevenue + pmRevenue + houseRevenue + glampRevenue + agriRevenue + farmRevenue + kayakRevenue;
+    const marketing = num("marketing"+year);
+    const utilities = num("utility"+year);
+    const overhead = num("generalOverhead"+year);
+    const maintenance = num("maintenance"+year);
+    const onsiteHost = num("onsiteHost"+year);
+
+    let capex = num("capex"+year);
+
+    const noi = totalRevenue - marketing - utilities - overhead - maintenance - onsiteHost;
+
+    return {year, ltRevenue, rvStrRevenue, pmRevenue, houseRevenue, glampRevenue, agriRevenue, farmRevenue, kayakRevenue, totalRevenue, marketing, utilities, overhead, maintenance, onsiteHost, capex, noi, glampUnits};
+  }
+
+  function renderRvRampSensitivity(){
+    const strRate = num("y1StrRate");
+    const strOcc = num("y1StrOcc");
+    const ltRevenue = num("ltSites") * num("ltRate") * 12 * num("ltOcc");
+    const pmRevenue = checked("useParkModels") ? lodgingRevenue(num("pmCount"), num("pmRate1"), num("pmOcc1")) : 0;
+    const houseRevenue = checked("useHouse") ? lodgingRevenue(1, num("houseRate1"), num("houseOcc1")) : 0;
+    const glampRevenue = 0;
+    const agriRevenue = checked("useAgri") ? num("agri1") : 0;
+    const farmRevenue = checked("useFarm") ? num("farm1") : 0;
+    const kayakRevenue = checked("useKayak") ? num("kayak1") : 0;
+
+    const marketing = num("marketing1");
+    const utilities = num("utility1");
+    const overhead = num("generalOverhead1");
+    const maintenance = num("maintenance1");
+    const onsiteHost = num("onsiteHost1");
+
+    const table = $("rvRampSensitivityTable");
+    if(!table) return;
+
+    let rows = '';
+    for(let month=4; month<=12; month++){
+      const rvRev = yearOneStrRvRevenueAtRampMonth(month, strRate, strOcc);
+      const totalRevenue = ltRevenue + rvRev + pmRevenue + houseRevenue + glampRevenue + agriRevenue + farmRevenue + kayakRevenue;
+      const noi = totalRevenue - marketing - utilities - overhead - maintenance - onsiteHost;
+      const diff = month === 4 ? 0 : (noi - (ltRevenue + yearOneStrRvRevenueAtRampMonth(4, strRate, strOcc) + pmRevenue + houseRevenue + agriRevenue + farmRevenue + kayakRevenue - marketing - utilities - overhead - maintenance - onsiteHost));
+      rows += `<tr><td>Month ${month}</td><td>${money(rvRev)}</td><td>${money(noi)}</td><td>${month === 4 ? 'Base' : money(diff)}</td></tr>`;
+    }
+
+    table.innerHTML = `
+      <thead>
+        <tr><th>Ramp Month</th><th>Y1 RV STR Revenue</th><th>Y1 NOI</th><th>Delta vs Month 4</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    `;
+  }
+
+
+  function getCurrentOperationsSnapshot(){
+    const ltRevenue = num("ltSites") * num("ltRate") * 12 * num("ltOcc");
+    const currentStrRevenue = num("y1StrSitesStart") * num("y1StrRate") * 365 * num("y1StrOcc");
+    const currentRevenue = ltRevenue + currentStrRevenue;
+    const currentOperatingCosts = num("utility1") + num("maintenance1") + num("generalOverhead1");
+    const currentNoi = (currentRevenue - currentOperatingCosts) / 2;
+    return {
+      currentRevenue,
+      currentNoi,
+      currentStrSites: num("y1StrSitesStart"),
+      targetStrSites: num("y1StrSitesRamp")
+    };
+  }
+
+  function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+  function buildScenarioCases(baseYears, seniorLoan, sellerNoteAmt){
+    const exitCap = num("exitCap");
+    const purchasePrice = num("purchasePrice");
+    const closingCosts = purchasePrice * num("closingCostPct");
+    const equityNeeded = purchasePrice + closingCosts - seniorLoan - sellerNoteAmt;
+
+    function finalize(name, years){
+      years.forEach(y=>{
+        y.totalDebt = y.seniorDebt + y.sellerDebt;
+        y.cashFlow = y.noi - y.totalDebt - y.capex;
+        y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+      });
+      const stabilizedValueY2 = exitCap > 0 ? years[1].noi / exitCap : 0;
+      const stabilizedValueY3 = exitCap > 0 ? years[2].noi / exitCap : 0;
+      const total3yrCash = years[0].cashFlow + years[1].cashFlow + years[2].cashFlow;
+      const equityMultiple = equityNeeded > 0 ? (total3yrCash + (stabilizedValueY3 - purchasePrice)) / equityNeeded : 0;
+      return {name, years, stabilizedValueY2, stabilizedValueY3, equityMultiple};
+    }
+
+    const base = finalize("Base", clone(baseYears));
+    const worstYears = clone(baseYears).map(y=>{
+      if(y.year >= 2){
+        y.rvStrRevenue *= 0.85;
+        y.pmRevenue *= 0.85;
+        y.houseRevenue *= 0.90;
+        y.glampRevenue *= 0.50;
+        y.agriRevenue = 0;
+        y.farmRevenue = 0;
+        y.kayakRevenue = 0;
+      } else {
+        y.rvStrRevenue *= 0.90;
+        y.pmRevenue *= 0.90;
+        y.houseRevenue *= 0.95;
+      }
+      y.totalRevenue = y.ltRevenue + y.rvStrRevenue + y.pmRevenue + y.houseRevenue + y.glampRevenue + y.agriRevenue + y.farmRevenue + y.kayakRevenue;
+      y.marketing *= 1.10;
+      y.utilities *= 1.10;
+      y.overhead *= 1.08;
+      y.maintenance *= 1.15;
+      y.onsiteHost *= 1.10;
+      y.capex *= 1.10;
+      y.noi = y.totalRevenue - y.marketing - y.utilities - y.overhead - y.maintenance - y.onsiteHost;
+      return y;
+    });
+    const bestYears = clone(baseYears).map(y=>{
+      y.rvStrRevenue *= 1.08;
+      y.pmRevenue *= 1.08;
+      y.houseRevenue *= 1.05;
+      y.glampRevenue *= 1.10;
+      y.agriRevenue *= 1.05;
+      y.farmRevenue *= 1.05;
+      y.kayakRevenue *= 1.05;
+      y.totalRevenue = y.ltRevenue + y.rvStrRevenue + y.pmRevenue + y.houseRevenue + y.glampRevenue + y.agriRevenue + y.farmRevenue + y.kayakRevenue;
+      y.marketing *= 0.97;
+      y.utilities *= 0.98;
+      y.overhead *= 0.98;
+      y.maintenance *= 0.98;
+      y.noi = y.totalRevenue - y.marketing - y.utilities - y.overhead - y.maintenance - y.onsiteHost;
+      return y;
+    });
+
+    return {
+      worst: finalize("Worst", worstYears),
+      base,
+      best: finalize("Best", bestYears)
+    };
+  }
+
+  function renderScenarios(cases){
+    $("scenarioWorstDscr").textContent = multiple(cases.worst.years[1].dscr);
+    $("scenarioBaseDscr").textContent = multiple(cases.base.years[1].dscr);
+    $("scenarioBestDscr").textContent = multiple(cases.best.years[1].dscr);
+
+    let riskLabel = "High";
+    let riskHint = "Worst case DSCR below 1.10x";
+    if(cases.worst.years[1].dscr >= 1.25){
+      riskLabel = "Strong";
+      riskHint = "Worst case still clears typical lender threshold";
+    } else if(cases.worst.years[1].dscr >= 1.10){
+      riskLabel = "Moderate";
+      riskHint = "Worst case is tight but not broken";
+    }
+
+    $("scenarioRiskIndicator").textContent = riskLabel;
+    $("scenarioRiskHint").textContent = riskHint;
+
+    const rows = [
+      ["Year 1 NOI", cases.worst.years[0].noi, cases.base.years[0].noi, cases.best.years[0].noi],
+      ["Year 2 NOI", cases.worst.years[1].noi, cases.base.years[1].noi, cases.best.years[1].noi],
+      ["Year 3 NOI", cases.worst.years[2].noi, cases.base.years[2].noi, cases.best.years[2].noi],
+      ["Year 2 DSCR", multiple(cases.worst.years[1].dscr), multiple(cases.base.years[1].dscr), multiple(cases.best.years[1].dscr)],
+      ["Year 3 Cash Flow", cases.worst.years[2].cashFlow, cases.base.years[2].cashFlow, cases.best.years[2].cashFlow],
+      ["Year 2 Value", cases.worst.stabilizedValueY2, cases.base.stabilizedValueY2, cases.best.stabilizedValueY2],
+      ["Year 3 Value", cases.worst.stabilizedValueY3, cases.base.stabilizedValueY3, cases.best.stabilizedValueY3],
+      ["Equity Multiple", multiple(cases.worst.equityMultiple), multiple(cases.base.equityMultiple), multiple(cases.best.equityMultiple)]
+    ];
+
+    $("scenarioTable").innerHTML = `
+      <thead><tr><th>Metric</th><th>Worst</th><th>Base</th><th>Upside Case</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr><td>${r[0]}</td><td>${typeof r[1] === 'string' ? r[1] : money(r[1])}</td><td>${typeof r[2] === 'string' ? r[2] : money(r[2])}</td><td>${typeof r[3] === 'string' ? r[3] : money(r[3])}</td></tr>`).join("")}
+      </tbody>
+    `;
+  }
+
+  function renderLenderSummary(years, seniorLoan){
+    const current = getCurrentOperationsSnapshot();
+    const debtYield = seniorLoan > 0 ? years[1].noi / seniorLoan : 0;
+    $("lenderSummaryCurrentNoi").textContent = money(current.currentNoi);
+    $("lenderSummaryY2Noi").textContent = money(years[1].noi);
+    $("lenderSummaryY2Dscr").textContent = multiple(years[1].dscr);
+    $("lenderSummaryDebtYield").textContent = fmtPct(debtYield);
+
+    $("lenderSummaryText").innerHTML = `
+      <strong>Current RV park snapshot:</strong> the property is modeled today as a smaller operating RV asset with <strong>${current.currentStrSites}</strong> short-term RV sites at close, plus long-term sites already in place.
+      Current / going-in modeled NOI is approximately <strong>${money(current.currentNoi)}</strong> before the larger value-add plan.
+      <br><br>
+      <strong>High-level NOI growth plan:</strong>
+      <br>1. Expand short-term RV sites from <strong>${current.currentStrSites}</strong> to <strong>${current.targetStrSites}</strong>.
+      <br>2. Improve RV occupancy and ADR through marketing and operational ramp-up.
+      <br>3. Add park-model / house lodging and later glamping as secondary upside.
+      <br>4. Use Year 2 as the first more stabilized lender sizing year.
+    `;
+
+    $("lenderSummaryTable").innerHTML = `
+      <thead><tr><th>Topic</th><th>Current / Plan</th><th>Why It Matters</th></tr></thead>
+      <tbody>
+        <tr><td>Current NOI</td><td>${money(current.currentNoi)}</td><td>Shows the operating base before improvements</td></tr>
+        <tr><td>RV Site Expansion</td><td>${current.currentStrSites} → ${current.targetStrSites} STR sites</td><td>Main driver of projected NOI growth</td></tr>
+        <tr><td>Year 2 NOI</td><td>${money(years[1].noi)}</td><td>First stabilized underwriting year</td></tr>
+        <tr><td>Year 2 DSCR</td><td>${multiple(years[1].dscr)}</td><td>Primary lender sizing check</td></tr>
+        <tr><td>Debt Yield</td><td>${fmtPct(debtYield)}</td><td>Quick credit quality metric</td></tr>
+        <tr><td>Upside Features</td><td>Park models, house STR, glamping, ancillary revenue</td><td>Helpful upside, but not the only value driver</td></tr>
+      </tbody>
+    `;
+  }
+
+  function buildCsvData(years, cases){
+    const rows = [
+      ["Summary"],
+      ["Purchase Price", num("purchasePrice")],
+      ["Senior Loan", num("purchasePrice") * num("seniorPct")],
+      ["Year 1 NOI", years[0].noi],
+      ["Year 2 NOI", years[1].noi],
+      ["Year 3 NOI", years[2].noi],
+      [],
+      ["Annual Pro Forma"],
+      ["Metric","Year 1","Year 2","Year 3"],
+      ["Total Revenue", years[0].totalRevenue, years[1].totalRevenue, years[2].totalRevenue],
+      ["Operating Costs", years[0].marketing + years[0].utilities + years[0].overhead + years[0].maintenance + years[0].onsiteHost, years[1].marketing + years[1].utilities + years[1].overhead + years[1].maintenance + years[1].onsiteHost, years[2].marketing + years[2].utilities + years[2].overhead + years[2].maintenance + years[2].onsiteHost],
+      ["NOI", years[0].noi, years[1].noi, years[2].noi],
+      ["Debt", years[0].totalDebt, years[1].totalDebt, years[2].totalDebt],
+      ["CapEx", years[0].capex, years[1].capex, years[2].capex],
+      ["Cash Flow", years[0].cashFlow, years[1].cashFlow, years[2].cashFlow],
+      [],
+      ["Scenarios"],
+      ["Metric","Worst","Base","Best"],
+      ["Year 2 NOI", cases.worst.years[1].noi, cases.base.years[1].noi, cases.best.years[1].noi],
+      ["Year 2 DSCR", cases.worst.years[1].dscr, cases.base.years[1].dscr, cases.best.years[1].dscr],
+      ["Year 3 Cash Flow", cases.worst.years[2].cashFlow, cases.base.years[2].cashFlow, cases.best.years[2].cashFlow],
+      ["Year 3 Value", cases.worst.stabilizedValueY3, cases.base.stabilizedValueY3, cases.best.stabilizedValueY3],
+      ["Equity Multiple", cases.worst.equityMultiple, cases.base.equityMultiple, cases.best.equityMultiple]
+    ];
+    return rows;
+  }
+
+  function exportSpreadsheetCsv(years, cases){
+    const rows = buildCsvData(years, cases);
+    const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g,'""')}"`).join(",")).join("\\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cloverleaf_proforma.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function buildProformaPdfHtml(years, cases, seniorLoan, stabilizedValue){
+    const current = getCurrentOperationsSnapshot();
+    return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Cloverleaf RV Village - Full Pro Forma</title>
+<style>
+body{font-family:Arial,sans-serif;margin:28px;color:#1f2937}
+h1{margin:0 0 6px} h2{margin:22px 0 10px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0 20px}
+.card{border:1px solid #d1d5db;border-radius:12px;padding:12px}
+.label{font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700}
+.value{font-size:22px;font-weight:700;margin-top:4px}
+.note{border:1px solid #d1d5db;border-radius:12px;padding:14px;background:#f8fafc}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border-bottom:1px solid #e5e7eb;padding:8px;text-align:left}
+th{font-size:11px;text-transform:uppercase;color:#64748b}
+.right{text-align:right}
+</style></head><body>
+<h1>Cloverleaf RV Village</h1>
+<div>3380 W Cloverleaf Ranch Rd, Camp Verde, AZ 86322</div>
+<h2>Executive Snapshot</h2>
+<div class="grid">
+<div class="card"><div class="label">Purchase Price</div><div class="value">${money(num("purchasePrice"))}</div></div>
+<div class="card"><div class="label">Senior Loan</div><div class="value">${money(seniorLoan)}</div></div>
+<div class="card"><div class="label">Year 2 NOI</div><div class="value">${money(years[1].noi)}</div></div>
+<div class="card"><div class="label">Year 2 DSCR</div><div class="value">${multiple(years[1].dscr)}</div></div>
+</div>
+<div class="note">
+<strong>Current RV park:</strong> modeled current NOI is ${money(current.currentNoi)} with ${current.currentStrSites} STR RV sites at close.
+<br><strong>Growth plan:</strong> expand STR RV sites to ${current.targetStrSites}, improve occupancy / ADR, then add secondary lodging and ancillary revenue.
+</div>
+<h2>Three-Year Pro Forma</h2>
+<table>
+<thead><tr><th>Metric</th><th class="right">Year 1</th><th class="right">Year 2</th><th class="right">Year 3</th></tr></thead>
+<tbody>
+<tr><td>Total Revenue</td><td class="right">${money(years[0].totalRevenue)}</td><td class="right">${money(years[1].totalRevenue)}</td><td class="right">${money(years[2].totalRevenue)}</td></tr>
+<tr><td>NOI</td><td class="right">${money(years[0].noi)}</td><td class="right">${money(years[1].noi)}</td><td class="right">${money(years[2].noi)}</td></tr>
+<tr><td>Debt Service</td><td class="right">${money(years[0].totalDebt)}</td><td class="right">${money(years[1].totalDebt)}</td><td class="right">${money(years[2].totalDebt)}</td></tr>
+<tr><td>CapEx</td><td class="right">${money(years[0].capex)}</td><td class="right">${money(years[1].capex)}</td><td class="right">${money(years[2].capex)}</td></tr>
+<tr><td>Cash Flow</td><td class="right">${money(years[0].cashFlow)}</td><td class="right">${money(years[1].cashFlow)}</td><td class="right">${money(years[2].cashFlow)}</td></tr>
+</tbody></table>
+<h2>Scenario Comparison</h2>
+<table>
+<thead><tr><th>Metric</th><th class="right">Worst</th><th class="right">Base</th><th class="right">Upside Case</th></tr></thead>
+<tbody>
+<tr><td>Year 2 NOI</td><td class="right">${money(cases.worst.years[1].noi)}</td><td class="right">${money(cases.base.years[1].noi)}</td><td class="right">${money(cases.best.years[1].noi)}</td></tr>
+<tr><td>Year 2 DSCR</td><td class="right">${multiple(cases.worst.years[1].dscr)}</td><td class="right">${multiple(cases.base.years[1].dscr)}</td><td class="right">${multiple(cases.best.years[1].dscr)}</td></tr>
+<tr><td>Year 3 Cash Flow</td><td class="right">${money(cases.worst.years[2].cashFlow)}</td><td class="right">${money(cases.base.years[2].cashFlow)}</td><td class="right">${money(cases.best.years[2].cashFlow)}</td></tr>
+<tr><td>Year 3 Value</td><td class="right">${money(cases.worst.stabilizedValueY3)}</td><td class="right">${money(cases.base.stabilizedValueY3)}</td><td class="right">${money(cases.best.stabilizedValueY3)}</td></tr>
+</tbody></table>
+</body></html>`;
+  }
+
+  function recalc(){
+    const purchasePrice = num("purchasePrice");
+    const exitCap = num("exitCap");
+    const seniorPct = num("seniorPct");
+    const seniorRate = num("seniorRate");
+    const seniorType = $("seniorType").value;
+    const ioMonths = num("ioMonths");
+    const amortYears = num("amortYears");
+    const balloonYear = num("balloonYear");
+    const sellerNotePct = num("sellerNotePct");
+    const sellerNoteRate = num("sellerNoteRate");
+    const sellerDeferMonths = num("sellerDeferMonths");
+    const dscrTarget = num("dscrTarget");
+
+    const seniorLoan = purchasePrice * seniorPct;
+    const sellerNoteAmt = purchasePrice * sellerNotePct;
+
+    const years = [getYearModel(1), getYearModel(2), getYearModel(3)];
+    years.forEach(y=>{
+      y.seniorDebt = annualSeniorDebt(seniorLoan, seniorRate, seniorType, ioMonths, amortYears, y.year, balloonYear);
+      y.sellerDebt = sellerNoteDebt(sellerNoteAmt, sellerNoteRate, sellerDeferMonths, y.year);
+      y.totalDebt = y.seniorDebt + y.sellerDebt;
+      y.cashFlow = y.noi - y.totalDebt - y.capex;
+      y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+    });
+
+    const stabilizedValue = exitCap > 0 ? years[2].noi / exitCap : 0;
+
+    window.__cloverleafYears = years;
+    window.__cloverleafSeniorLoan = seniorLoan;
+    window.__cloverleafStabilizedValue = stabilizedValue;
+    window.__cloverleafScenarioCases = buildScenarioCases(years, seniorLoan, sellerNoteAmt);
+
+    $("metricY1Noi").textContent = money(years[0].noi);
+    $("metricY2Noi").textContent = money(years[1].noi);
+    $("metricY3Noi").textContent = money(years[2].noi);
+    $("metricY1Cf").textContent = money(years[0].cashFlow);
+    $("metricY2Dscr").textContent = multiple(years[1].dscr);
+    $("metricY2DscrHint").innerHTML = years[1].dscr >= dscrTarget ? '<span class="good">Above target</span>' : '<span class="warn">Below target</span>';
+    $("metricValue").textContent = money(stabilizedValue);
+    $("metricLoan").textContent = money(seniorLoan);
+    $("metricDebt").textContent = money(years[1].seniorDebt);
+    $("metricDebtHint").textContent = "Balloon year: " + balloonYear;
+
+    const statusEl = $("dealStatus");
+    if(years[1].dscr >= 1.50){ statusEl.textContent = "Strong"; statusEl.className = "status-pill good"; }
+    else if(years[1].dscr >= dscrTarget){ statusEl.textContent = "Acceptable"; statusEl.className = "status-pill warn"; }
+    else { statusEl.textContent = "Tight"; statusEl.className = "status-pill bad"; }
+
+    $("quickRead").innerHTML =
+      "Year 1 NOI is <strong>" + money(years[0].noi) + "</strong> and Year 1 levered cash flow is <strong>" + money(years[0].cashFlow) + "</strong>. " +
+      "Year 2 NOI is <strong>" + money(years[1].noi) + "</strong> with DSCR of <strong>" + multiple(years[1].dscr) + "</strong>. " +
+      "Year 3 NOI is <strong>" + money(years[2].noi) + "</strong>, implying a stabilized value of <strong>" + money(stabilizedValue) + "</strong>. " +
+      "Senior loan assumptions currently model a balloon at <strong>Year " + balloonYear + "</strong>. " +
+      "Year 1 STR RV revenue reflects a ramp from <strong>" + num("y1StrSitesStart") + " sites at close</strong> to <strong>" + num("y1StrSitesRamp") + " sites after launch</strong>, with current live month set to <strong>Month " + num("rvRampMonth1") + "</strong>. Glamping remains inactive in Year 1.</strong>";
+
+    $("annualTable").innerHTML = `
+      <thead>
+        <tr><th>Line Item</th><th>Year 1</th><th>Year 2</th><th>Year 3</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>RV LT Revenue</td><td>${money(years[0].ltRevenue)}</td><td>${money(years[1].ltRevenue)}</td><td>${money(years[2].ltRevenue)}</td></tr>
+                <tr><td>RV STR Revenue</td><td>${money(years[0].rvStrRevenue)}</td><td>${money(years[1].rvStrRevenue)}</td><td>${money(years[2].rvStrRevenue)}</td></tr>
+        <tr><td>Park Models Revenue</td><td>${money(years[0].pmRevenue)}</td><td>${money(years[1].pmRevenue)}</td><td>${money(years[2].pmRevenue)}</td></tr>
+        <tr><td>Main House Revenue</td><td>${money(years[0].houseRevenue)}</td><td>${money(years[1].houseRevenue)}</td><td>${money(years[2].houseRevenue)}</td></tr>
+        <tr><td>Glamping Revenue</td><td>${money(years[0].glampRevenue)}</td><td>${money(years[1].glampRevenue)}</td><td>${money(years[2].glampRevenue)}</td></tr>
+        <tr><td>Agri Events Revenue</td><td>${money(years[0].agriRevenue)}</td><td>${money(years[1].agriRevenue)}</td><td>${money(years[2].agriRevenue)}</td></tr>
+        <tr><td>Farmer Share Revenue</td><td>${money(years[0].farmRevenue)}</td><td>${money(years[1].farmRevenue)}</td><td>${money(years[2].farmRevenue)}</td></tr>
+        <tr><td>Kayak Revenue</td><td>${money(years[0].kayakRevenue)}</td><td>${money(years[1].kayakRevenue)}</td><td>${money(years[2].kayakRevenue)}</td></tr>
+        <tr><td><strong>Total Revenue</strong></td><td><strong>${money(years[0].totalRevenue)}</strong></td><td><strong>${money(years[1].totalRevenue)}</strong></td><td><strong>${money(years[2].totalRevenue)}</strong></td></tr>
+        <tr><td>Marketing</td><td>${money(-years[0].marketing)}</td><td>${money(-years[1].marketing)}</td><td>${money(-years[2].marketing)}</td></tr>
+        <tr><td>Utilities</td><td>${money(-years[0].utilities)}</td><td>${money(-years[1].utilities)}</td><td>${money(-years[2].utilities)}</td></tr>
+        <tr><td>General Overhead</td><td>${money(-years[0].overhead)}</td><td>${money(-years[1].overhead)}</td><td>${money(-years[2].overhead)}</td></tr>
+        <tr><td>Maintenance</td><td>${money(-years[0].maintenance)}</td><td>${money(-years[1].maintenance)}</td><td>${money(-years[2].maintenance)}</td></tr>
+        <tr><td>Onsite Host</td><td>${money(-years[0].onsiteHost)}</td><td>${money(-years[1].onsiteHost)}</td><td>${money(-years[2].onsiteHost)}</td></tr>
+        <tr><td><strong>NOI</strong></td><td><strong>${money(years[0].noi)}</strong></td><td><strong>${money(years[1].noi)}</strong></td><td><strong>${money(years[2].noi)}</strong></td></tr>
+        <tr><td>Senior Debt Service</td><td>${money(-years[0].seniorDebt)}</td><td>${money(-years[1].seniorDebt)}</td><td>${money(-years[2].seniorDebt)}</td></tr>
+        <tr><td>Seller Debt Service</td><td>${money(-years[0].sellerDebt)}</td><td>${money(-years[1].sellerDebt)}</td><td>${money(-years[2].sellerDebt)}</td></tr>
+        <tr><td>CapEx</td><td>${money(-years[0].capex)}</td><td>${money(-years[1].capex)}</td><td>${money(-years[2].capex)}</td></tr>
+        <tr><td><strong>Levered Cash Flow</strong></td><td><strong>${money(years[0].cashFlow)}</strong></td><td><strong>${money(years[1].cashFlow)}</strong></td><td><strong>${money(years[2].cashFlow)}</strong></td></tr>
+        <tr><td>DSCR</td><td>${multiple(years[0].dscr)}</td><td>${multiple(years[1].dscr)}</td><td>${multiple(years[2].dscr)}</td></tr>
+      </tbody>`;
+
+    renderRvRampSensitivity();
+    renderLenderView(years, seniorLoan);
+    renderInvestorView(years, seniorLoan, stabilizedValue);
+
+    $("summaryText").innerHTML =
+      "<strong>Expense Structure Summary</strong><br><br>" +
+      "Changes made:<br>" +
+      "• Removed operating margin rows from RV, lodging, and other income streams<br>" +
+      "• Added centralized expense categories for maintenance and onsite host<br>" +
+      "• NOI is now calculated as total revenue less marketing, utilities, general overhead, maintenance, and onsite host costs<br>" +
+      "• Balloon year remains editable in loan assumptions<br><br>" +
+      "This version uses centralized operating expense categories rather than per-stream operating margins.";
+  }
+
+  function activateTab(tabName){
+    document.querySelectorAll(".tab").forEach(btn=>btn.classList.toggle("active", btn.dataset.tab===tabName));
+    document.querySelectorAll(".panel").forEach(panel=>panel.classList.toggle("panel-hidden", panel.id !== "panel-" + tabName));
+  }
+
+  document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click", ()=>activateTab(btn.dataset.tab)));
+  $("recalcBtn").addEventListener("click", recalc);
+  $("saveBtn").addEventListener("click", ()=>{ saveAssumptions(); recalc(); alert("Assumptions saved on this device."); });
+  $("resetBtn").addEventListener("click", ()=>{ localStorage.removeItem(storageKey); loadDefaults(); recalc(); });
+  $("exportLenderPdfBtn").addEventListener("click", ()=>{
+    const purchasePrice = num("purchasePrice");
+    const seniorLoan = purchasePrice * num("seniorPct");
+    const exitCap = num("exitCap");
+    const years = [getYearModel(1), getYearModel(2), getYearModel(3)];
+    years.forEach(y=>{
+      y.seniorDebt = annualSeniorDebt(seniorLoan, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"), y.year, num("balloonYear"));
+      y.sellerDebt = sellerNoteDebt(purchasePrice * num("sellerNotePct"), num("sellerNoteRate"), num("sellerDeferMonths"), y.year);
+      y.totalDebt = y.seniorDebt + y.sellerDebt;
+      y.cashFlow = y.noi - y.totalDebt - y.capex;
+      y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+    });
+    openPdfWindow(buildLenderPdfHtml(years, seniorLoan));
+  });
+  $("exportInvestorPdfBtn").addEventListener("click", ()=>{
+    const purchasePrice = num("purchasePrice");
+    const seniorLoan = purchasePrice * num("seniorPct");
+    const exitCap = num("exitCap");
+    const years = [getYearModel(1), getYearModel(2), getYearModel(3)];
+    years.forEach(y=>{
+      y.seniorDebt = annualSeniorDebt(seniorLoan, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"), y.year, num("balloonYear"));
+      y.sellerDebt = sellerNoteDebt(purchasePrice * num("sellerNotePct"), num("sellerNoteRate"), num("sellerDeferMonths"), y.year);
+      y.totalDebt = y.seniorDebt + y.sellerDebt;
+      y.cashFlow = y.noi - y.totalDebt - y.capex;
+      y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+    });
+    const stabilizedValue = exitCap > 0 ? years[2].noi / exitCap : 0;
+    openPdfWindow(buildInvestorPdfHtml(years, seniorLoan, stabilizedValue));
+  });
+
+  if(!loadSaved()) loadDefaults();
+
+  $("exportProformaPdfBtn").addEventListener("click", ()=>{
+    let years = window.__cloverleafYears;
+    let seniorLoan = window.__cloverleafSeniorLoan;
+    let stabilizedValue = window.__cloverleafStabilizedValue;
+    let cases = window.__cloverleafScenarioCases;
+
+    if(!years || !seniorLoan || !cases){
+      const purchasePrice = num("purchasePrice");
+      seniorLoan = purchasePrice * num("seniorPct");
+      const sellerNoteAmt = purchasePrice * num("sellerNotePct");
+      years = [getYearModel(1), getYearModel(2), getYearModel(3)];
+      years.forEach(y=>{
+        y.seniorDebt = annualSeniorDebt(seniorLoan, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"), y.year, num("balloonYear"));
+        y.sellerDebt = sellerNoteDebt(sellerNoteAmt, num("sellerNoteRate"), num("sellerDeferMonths"), y.year);
+        y.totalDebt = y.seniorDebt + y.sellerDebt;
+        y.cashFlow = y.noi - y.totalDebt - y.capex;
+        y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+      });
+      stabilizedValue = num("exitCap") > 0 ? years[2].noi / num("exitCap") : 0;
+      cases = buildScenarioCases(years, seniorLoan, sellerNoteAmt);
+    }
+
+    openPdfWindow(buildProformaPdfHtml(years, cases, seniorLoan, stabilizedValue));
+  });
+  $("exportSpreadsheetBtn").addEventListener("click", ()=>{
+    let years = window.__cloverleafYears;
+    let seniorLoan = window.__cloverleafSeniorLoan;
+    let cases = window.__cloverleafScenarioCases;
+
+    if(!years || !seniorLoan || !cases){
+      const purchasePrice = num("purchasePrice");
+      seniorLoan = purchasePrice * num("seniorPct");
+      const sellerNoteAmt = purchasePrice * num("sellerNotePct");
+      years = [getYearModel(1), getYearModel(2), getYearModel(3)];
+      years.forEach(y=>{
+        y.seniorDebt = annualSeniorDebt(seniorLoan, num("seniorRate"), $("seniorType").value, num("ioMonths"), num("amortYears"), y.year, num("balloonYear"));
+        y.sellerDebt = sellerNoteDebt(sellerNoteAmt, num("sellerNoteRate"), num("sellerDeferMonths"), y.year);
+        y.totalDebt = y.seniorDebt + y.sellerDebt;
+        y.cashFlow = y.noi - y.totalDebt - y.capex;
+        y.dscr = y.totalDebt > 0 ? y.noi / y.totalDebt : 0;
+      });
+      cases = buildScenarioCases(years, seniorLoan, sellerNoteAmt);
+    }
+
+    exportSpreadsheetCsv(years, cases);
+  });
+
+  if(!loadSaved()) loadDefaults();
+  recalc();
+})();
+</script>
+</body>
+</html>
